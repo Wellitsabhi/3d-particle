@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caffora: Immersive Particle System</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-weight: 300;
+            font-size: 1.5rem;
+            margin: 0 0 10px 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .controls {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-left: 2px solid cyan;
+            backdrop-filter: blur(5px);
+            border-radius: 0 10px 10px 0;
+        }
+
+        .stat-box {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #555;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>Caffora Kinetic</h1>
+        <div class="controls">
+            <div><strong>System:</strong> GPU-Accelerated WebGL</div>
+            <div style="margin-top:10px; color:cyan;">Simulation Inputs:</div>
+            <div>✦ <strong>Move Mouse:</strong> Hand Tracking</div>
+            <div>✦ <strong>Left Click (Hold):</strong> "Pinch" (Gravity)</div>
+            <div>✦ <strong>Right Click (Hold):</strong> "Fist" (Repulsion)</div>
+        </div>
+    </div>
+
+    <div class="stat-box" id="stats">Particles: Initializing...</div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        /**
+         * CONFIGURATION
+         * Based on User JSON "particleSystem" and "visualSystem"
+         */
+        const CONFIG = {
+            particleCount: 25000, // Balanced for performance/visuals
+            cameraZ: 400,
+            baseColor: 0x00ffff,
+            interactionRadius: 150,
+            viscosity: 0.96, // How fast particles lose speed (friction)
+            mouseForce: 0.5,
+            restorationForce: 0.02 // Force pulling particles back to origin
+        };
+
+        // State Management
+        let scene, camera, renderer;
+        let particles, geometry, material;
+        let positions, velocities, originalPositions;
+        
+        // Input State (Simulating MediaPipe)
+        const input = {
+            x: 0,
+            y: 0,
+            z: 0,
+            isPinching: false, // Mapped to Left Click
+            isFist: false,     // Mapped to Right Click
+            isActive: false    // True when mouse enters
+        };
+
+        const clock = new THREE.Clock();
+
+        function init() {
+            // 1. Scene Setup
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x000000, 0.001); // "Dark Void" background
+
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
+            camera.position.z = CONFIG.cameraZ;
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Optimize for mobile
+            container.appendChild(renderer.domElement);
+
+            // 4. Create Particle System
+            createParticles();
+
+            // 5. Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mouseup', onMouseUp);
+            document.addEventListener('contextmenu', e => e.preventDefault()); // Block context menu for Right Click
+
+            // 6. Start Loop
+            document.getElementById('stats').innerText = `Particles: ${CONFIG.particleCount} | Rendering: THREE.Points`;
+            animate();
+        }
+
+        function createParticles() {
+            geometry = new THREE.BufferGeometry();
+            
+            // Typed Arrays for GPU efficiency
+            positions = new Float32Array(CONFIG.particleCount * 3);
+            originalPositions = new Float32Array(CONFIG.particleCount * 3);
+            velocities = new Float32Array(CONFIG.particleCount * 3);
+            const colors = new Float32Array(CONFIG.particleCount * 3);
+
+            const colorObj = new THREE.Color();
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                // Create a "Nebula" or "Galaxy" distribution
+                // Using spherical coordinates for random distribution
+                const r = Math.random() * 800 - 400;
+                const theta = Math.random() * 2 * Math.PI;
+                const phi = Math.acos((Math.random() * 2) - 1);
+
+                let x = (Math.random() - 0.5) * 600; 
+                let y = (Math.random() - 0.5) * 400;
+                let z = (Math.random() - 0.5) * 500;
+
+                // Alternate distribution: Sphere
+                // x = 300 * Math.sin(phi) * Math.cos(theta);
+                // y = 300 * Math.sin(phi) * Math.sin(theta);
+                // z = 300 * Math.cos(phi);
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                // Store original for "Memory" effect
+                originalPositions[i * 3] = x;
+                originalPositions[i * 3 + 1] = y;
+                originalPositions[i * 3 + 2] = z;
+
+                // Initial colors (Cosmic Palette: Blue/Purple/Cyan)
+                const hue = 0.5 + Math.random() * 0.2; // Blue to Purple
+                colorObj.setHSL(hue, 0.8, 0.6);
+                
+                colors[i * 3] = colorObj.r;
+                colors[i * 3 + 1] = colorObj.g;
+                colors[i * 3 + 2] = colorObj.b;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            // Create a generated texture for the "Glow" effect
+            const sprite = createGlowTexture();
+
+            material = new THREE.PointsMaterial({
+                size: 3,
+                map: sprite,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending, // Makes overlapping particles brighter
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+        }
+
+        // Helper to create a soft glow texture programmatically
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
+            gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 32, 32);
+            const texture = new THREE.Texture(canvas);
+            texture.needsUpdate = true;
+            return texture;
+        }
+
+        // Input Handling
+        function onMouseMove(event) {
+            input.isActive = true;
+            // Convert mouse screen pos to 3D world pos logic
+            // Z is assumed 0 for the mouse plane
+            
+            const vector = new THREE.Vector3();
+            vector.set(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1,
+                0.5
+            );
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const distance = -camera.position.z / dir.z;
+            const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            
+            input.x = pos.x;
+            input.y = pos.y;
+            input.z = pos.z;
+        }
+
+        function onMouseDown(event) {
+            if (event.button === 0) input.isPinching = true; // Left Click
+            if (event.button === 2) input.isFist = true;     // Right Click
+        }
+
+        function onMouseUp(event) {
+            input.isPinching = false;
+            input.isFist = false;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // PHYSICS & ANIMATION LOOP
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+            const positionsArray = particles.geometry.attributes.position.array;
+            const colorsArray = particles.geometry.attributes.color.array;
+
+            // Rotate entire system slowly (Orbital Motion)
+            if(!input.isFist) {
+                particles.rotation.y = time * 0.05;
+                particles.rotation.z = time * 0.02;
+            }
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const ix = i * 3;
+                const iy = i * 3 + 1;
+                const iz = i * 3 + 2;
+
+                // 1. Get current particle position
+                let px = positionsArray[ix];
+                let py = positionsArray[iy];
+                let pz = positionsArray[iz];
+
+                // 2. Physics: Calculate distance to Mouse/Hand
+                let dx = input.x - px;
+                let dy = input.y - py;
+                let dz = input.z - pz;
+                
+                // Rotation compensation for mouse interaction
+                // (Since we rotated the container, we need to un-rotate the mouse logic relative to particles, 
+                // but for this simple demo, we calculate normally for raw chaos)
+                
+                const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+                // 3. Apply Forces based on Input
+                if (input.isActive && dist < CONFIG.interactionRadius * 2) {
+                    const force = (CONFIG.interactionRadius - dist) / CONFIG.interactionRadius;
+                    
+                    if (input.isPinching) {
+                        // GRAVITY WELL (Attraction)
+                        velocities[ix] += dx * force * 0.05;
+                        velocities[iy] += dy * force * 0.05;
+                        velocities[iz] += dz * force * 0.05;
+                    } 
+                    else if (input.isFist) {
+                        // SHOCKWAVE (Strong Repulsion)
+                        velocities[ix] -= dx * force * 0.2;
+                        velocities[iy] -= dy * force * 0.2;
+                        velocities[iz] -= dz * force * 0.2;
+                    } 
+                    else {
+                        // GENTLE DISPLACEMENT (Hand moving through smoke)
+                        if(dist < 100) {
+                            velocities[ix] -= dx * force * 0.02;
+                            velocities[iy] -= dy * force * 0.02;
+                            velocities[iz] -= dz * force * 0.02;
+                        }
+                    }
+                }
+
+                // 4. Restoration Force (Elasticity - return to shape)
+                // Calculate vector to original position
+                // Apply rotation transform to original position to match the container
+                // For simplicity in this version, we drift back to a relative point
+                
+                const ox = originalPositions[ix];
+                const oy = originalPositions[iy];
+                const oz = originalPositions[iz];
+
+                velocities[ix] += (ox - px) * CONFIG.restorationForce;
+                velocities[iy] += (oy - py) * CONFIG.restorationForce;
+                velocities[iz] += (oz - pz) * CONFIG.restorationForce;
+
+                // 5. Update Position with Velocity
+                positionsArray[ix] += velocities[ix];
+                positionsArray[iy] += velocities[iy];
+                positionsArray[iz] += velocities[iz];
+
+                // 6. Apply Friction (Viscosity)
+                velocities[ix] *= CONFIG.viscosity;
+                velocities[iy] *= CONFIG.viscosity;
+                velocities[iz] *= CONFIG.viscosity;
+
+                // 7. Dynamic Color (Pulse)
+                // If moving fast, turn white/bright. If slow, base color.
+                const speed = Math.sqrt(velocities[ix]**2 + velocities[iy]**2 + velocities[iz]**2);
+                
+                if (speed > 2) {
+                    // Bright White/Yellow for high energy
+                    colorsArray[ix] = 1; 
+                    colorsArray[iy] = 1; 
+                    colorsArray[iz] = 0.8;
+                } else {
+                    // Return to cool colors
+                    // We can use a sine wave on time to cycle hues
+                    colorsArray[ix] = 0.1 + Math.sin(time + px*0.01) * 0.1; // R
+                    colorsArray[iy] = 0.8 + Math.cos(time + py*0.01) * 0.2; // G
+                    colorsArray[iz] = 0.9; // B
+                }
+            }
+
+            particles.geometry.attributes.position.needsUpdate = true;
+            particles.geometry.attributes.color.needsUpdate = true;
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        init();
+
+    </script>
+</body>
+</html>
