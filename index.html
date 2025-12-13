@@ -7,7 +7,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;500;700&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
@@ -17,72 +17,168 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
+        :root {
+            --primary: #00d2ff;
+            --accent: #ff0055;
+            --bg-panel: rgba(10, 10, 20, 0.85);
+        }
+
         body { margin: 0; overflow: hidden; background-color: #000; font-family: 'IBM Plex Mono', monospace; }
         #canvas-container { width: 100vw; height: 100vh; }
         #input_video { display: none; }
         
-        /* UI Layer */
+        /* UI LAYOUT */
         #ui-layer {
             position: absolute;
             top: 20px; left: 20px;
-            color: white;
             z-index: 10;
-            pointer-events: none;
         }
+
+        /* TOGGLE BUTTON */
+        .toggle-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 15px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toggle-btn:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        /* HUD PANEL (Collapsible) */
         .hud-panel {
-            background: rgba(10, 10, 20, 0.75);
-            border-left: 3px solid #00d2ff;
+            background: var(--bg-panel);
+            border-left: 3px solid var(--primary);
             padding: 20px;
             border-radius: 0 8px 8px 0;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 0 25px rgba(0, 210, 255, 0.15);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+            color: white;
+            width: 280px;
+            transform-origin: top left;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 1;
+            transform: scale(1) translateX(0);
         }
-        h2 { margin: 0 0 10px 0; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; font-size: 1.1rem; }
-        .guide-item { margin-bottom: 8px; font-size: 0.85rem; color: #aaddff; display: flex; align-items: center; gap: 10px; }
-        .icon { font-size: 1.2rem; width: 25px; text-align: center; }
-        .status-text { margin-top: 15px; font-size: 0.75rem; color: #ff0055; font-weight: bold; }
-        .active { color: #00ff88; }
 
-        /* CREDITS FOOTER */
+        .hud-panel.closed {
+            opacity: 0;
+            transform: scale(0.8) translateX(-50px);
+            pointer-events: none;
+            position: absolute; /* Take out of flow when closed */
+        }
+
+        h2 { margin: 0 0 15px 0; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;}
+        .guide-item { margin-bottom: 12px; font-size: 0.85rem; color: #aaddff; display: flex; align-items: center; gap: 12px; }
+        .icon { font-size: 1.4rem; width: 30px; text-align: center; }
+        .status-text { margin-top: 20px; font-size: 0.7rem; color: var(--accent); font-weight: bold; letter-spacing: 1px; }
+        .status-text.active { color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+
+        /* ANIMATED FOOTER CREDITS */
         .credits {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.8rem;
+            bottom: 25px;
+            right: 25px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
             z-index: 20;
             text-align: right;
-            pointer-events: auto; /* Allow clicking */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .credits a {
-            color: #00d2ff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-        .credits a:hover {
-            color: #ffffff;
-            text-shadow: 0 0 8px #00d2ff;
-        }
-        .heart {
-            color: #ff0055;
+
+        /* ROTATING TEXT ANIMATION (Flow In/Out) */
+        .rotating-text-wrapper {
             display: inline-block;
-            animation: heartbeat 1.5s infinite;
+            min-width: 100px; /* Prevent jitter */
+            text-align: right;
+            position: relative;
         }
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            10% { transform: scale(1.2); }
-            20% { transform: scale(1); }
-            30% { transform: scale(1.2); }
-            40% { transform: scale(1); }
-            100% { transform: scale(1); }
+        
+        .rotating-word {
+            display: inline-block;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .rotating-word.hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            position: absolute;
+            right: 0;
+        }
+
+        /* EMOJI ANIMATION */
+        .emoji-box {
+            display: inline-block;
+            min-width: 25px;
+            text-align: center;
+            font-size: 1.2rem;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .emoji-box.pop {
+            transform: scale(1.5) rotate(15deg);
+        }
+
+        /* GRADIENT USERNAME ANIMATION */
+        .gradient-link {
+            text-decoration: none;
+            font-weight: 700;
+            background: linear-gradient(to right, #00d2ff, #3a7bd5, #ff0055, #00d2ff);
+            background-size: 200% auto;
+            color: #000;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 3s linear infinite;
+        }
+        
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* MOBILE RESPONSIVENESS */
+        @media (max-width: 768px) {
+            .hud-panel { width: 85vw; font-size: 0.9rem; }
+            .credits { 
+                bottom: 10px; 
+                right: 50%; 
+                transform: translateX(50%); 
+                width: max-content;
+                font-size: 0.75rem;
+                padding: 8px 15px;
+            }
+            .toggle-btn { padding: 8px 12px; font-size: 0.8rem; }
         }
     </style>
 </head>
 <body>
 
     <div id="ui-layer">
-        <div class="hud-panel">
+        <button class="toggle-btn" id="toggle-panel">
+            <span>ℹ️</span> INFO
+        </button>
+        
+        <div class="hud-panel" id="info-panel">
             <h2>Caffora Engine</h2>
             <div class="guide-item"><span class="icon">✊</span> <span><strong>Close Hand:</strong> Hyper-Zoom</span></div>
             <div class="guide-item"><span class="icon">✋</span> <span><strong>Open Hand:</strong> Reset View</span></div>
@@ -93,14 +189,72 @@
     </div>
 
     <div class="credits">
-        Code with <span class="heart">♥</span> by <a href="https://github.com/Wellitsabhi" target="_blank">wellitsabhi</a>
+        <span class="rotating-text-wrapper">
+            <span id="rotator" class="rotating-word">vibecoded</span>
+        </span> 
+        <span id="emoji-roulette" class="emoji-box">♥</span> 
+        by 
+        <a href="https://github.com/Wellitsabhi" target="_blank" class="gradient-link">wellitsabhi</a>
     </div>
 
     <video id="input_video"></video>
     <div id="canvas-container"></div>
 
     <script>
-        // --- CONFIGURATION ---
+        // --- UI INTERACTIVITY ---
+        
+        // 1. Panel Toggle
+        const toggleBtn = document.getElementById('toggle-panel');
+        const infoPanel = document.getElementById('info-panel');
+        let isPanelOpen = true;
+
+        toggleBtn.addEventListener('click', () => {
+            isPanelOpen = !isPanelOpen;
+            if(isPanelOpen) {
+                infoPanel.classList.remove('closed');
+                toggleBtn.style.opacity = '1';
+            } else {
+                infoPanel.classList.add('closed');
+                toggleBtn.style.opacity = '0.7';
+            }
+        });
+
+        // 2. Text & Emoji Animation System
+        const words = ["vibecoded", "easy peasy", "pure chaos", "just magic", "scifi mode"];
+        const emojis = ["♥", "😂", "😭", "🤔", "🔥", "👀", "🚀"];
+        
+        const rotatorEl = document.getElementById('rotator');
+        const emojiEl = document.getElementById('emoji-roulette');
+        
+        let wordIndex = 0;
+        let emojiIndex = 0;
+
+        function cycleContent() {
+            // Text Flow Animation
+            rotatorEl.style.opacity = '0';
+            rotatorEl.style.transform = 'translateY(-10px)';
+
+            setTimeout(() => {
+                wordIndex = (wordIndex + 1) % words.length;
+                rotatorEl.innerText = words[wordIndex];
+                rotatorEl.style.opacity = '1';
+                rotatorEl.style.transform = 'translateY(0)';
+            }, 500);
+
+            // Emoji Pop Animation
+            emojiEl.classList.add('pop');
+            setTimeout(() => {
+                emojiIndex = (emojiIndex + 1) % emojis.length;
+                emojiEl.innerText = emojis[emojiIndex];
+                emojiEl.classList.remove('pop');
+            }, 300);
+        }
+
+        setInterval(cycleContent, 2500);
+
+
+        // --- WEBGL & VISION ENGINE ---
+
         const CONFIG = {
             particleCount: 25000, 
             defaultCamZ: 400,
@@ -109,7 +263,6 @@
             lerpSpeed: 0.05    
         };
 
-        // --- STATE ---
         let scene, camera, renderer, particles;
         let positions, velocities, originalPositions, colors;
         
@@ -121,7 +274,6 @@
             isActive: false
         };
 
-        // --- THREE.JS ENGINE ---
         function initThree() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
@@ -207,15 +359,12 @@
             scene.add(particles);
         }
 
-        // --- ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Zoom
             const targetZ = input.isFist ? CONFIG.zoomCamZ : CONFIG.defaultCamZ;
             camera.position.z += (targetZ - camera.position.z) * CONFIG.lerpSpeed;
 
-            // Rotation
             if (input.isActive) {
                 const targetRotation = input.normalizedX * -CONFIG.maxRotation;
                 particles.rotation.y += (targetRotation - particles.rotation.y) * CONFIG.lerpSpeed;
@@ -223,7 +372,6 @@
                 particles.rotation.y += 0.001;
             }
 
-            // Physics
             const posAttr = particles.geometry.attributes.position;
             const cosR = Math.cos(-particles.rotation.y);
             const sinR = Math.sin(-particles.rotation.y);
@@ -271,7 +419,6 @@
             renderer.render(scene, camera);
         }
 
-        // --- COMPUTER VISION ---
         const videoElement = document.getElementById('input_video');
         const statusInd = document.getElementById('status-indicator');
 
