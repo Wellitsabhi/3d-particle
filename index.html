@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caffora: Kinetic Universe</title>
+    <title>Caffora: Deep Space</title>
     
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -21,8 +21,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
-        :root { --primary: #00d2ff; --accent: #ff0055; --bg-panel: rgba(10, 10, 20, 0.9); }
-        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'IBM Plex Mono', monospace; }
+        :root { --primary: #00d2ff; --accent: #ff0055; --bg-panel: rgba(5, 5, 10, 0.9); }
+        body { margin: 0; overflow: hidden; background-color: #020202; font-family: 'IBM Plex Mono', monospace; }
         #canvas-container { width: 100vw; height: 100vh; display: block; }
         #input_video { display: none; }
         
@@ -33,36 +33,36 @@
             display: none; flex-direction: column; align-items: center; justify-content: center;
             color: white; text-align: center;
         }
-        .error-box { border: 2px solid red; padding: 20px; border-radius: 10px; max-width: 500px; }
-        .error-title { color: red; font-size: 1.5rem; margin-bottom: 10px; }
-        .error-msg { margin-bottom: 20px; line-height: 1.6; color: #ccc; }
-        .retry-btn { padding: 10px 20px; background: red; color: white; border: none; cursor: pointer; font-family: inherit; font-weight: bold; }
+        .error-box { border: 1px solid var(--accent); padding: 25px; border-radius: 12px; max-width: 90%; background: #111; }
+        .error-title { color: var(--accent); font-size: 1.4rem; margin-bottom: 15px; font-weight: 700; }
+        .error-msg { margin-bottom: 20px; line-height: 1.6; color: #ccc; font-size: 0.9rem; }
+        .retry-btn { padding: 12px 24px; background: var(--accent); color: white; border: none; cursor: pointer; font-family: inherit; font-weight: bold; border-radius: 4px; }
 
         /* UI ELEMENTS */
         #ui-layer { position: absolute; top: 20px; left: 20px; z-index: 10; pointer-events: none; }
         .toggle-btn { 
             pointer-events: auto; background: var(--bg-panel); border: 1px solid var(--primary); 
             color: var(--primary); padding: 10px 15px; cursor: pointer; font-family: inherit; font-weight: bold;
-            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px; border-radius: 4px;
         }
         .hud-panel {
             background: var(--bg-panel); border-left: 3px solid var(--primary); padding: 20px;
             border-radius: 0 8px 8px 0; color: white; width: 280px;
-            transition: 0.3s; pointer-events: auto;
+            transition: 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); pointer-events: auto;
         }
         .hud-panel.closed { opacity: 0; transform: translateX(-50px); pointer-events: none; }
         
         /* CREDITS */
         .credits {
             position: absolute; bottom: 20px; right: 20px; color: rgba(255,255,255,0.6);
-            z-index: 20; background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px;
+            z-index: 20; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 30px;
             border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;
-            display: flex; gap: 5px; align-items: center;
+            display: flex; gap: 8px; align-items: center; backdrop-filter: blur(4px);
         }
         .credits a { color: var(--primary); text-decoration: none; font-weight: bold; }
         
         /* ANIMATIONS */
-        .rotating-text-wrapper { display: inline-block; min-width: 80px; text-align: right; }
+        .rotating-text-wrapper { display: inline-block; min-width: 90px; text-align: right; }
         .rotating-word { display: inline-block; transition: 0.5s; opacity: 1; transform: translateY(0); }
         .emoji-box { display: inline-block; min-width: 25px; text-align: center; transition: 0.3s; }
         .pop { transform: scale(1.5) rotate(15deg); }
@@ -77,39 +77,46 @@
         /* CAMERA BUTTON */
         #cam-btn {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 50; padding: 15px 30px; background: rgba(0,0,0,0.8);
+            z-index: 50; padding: 18px 36px; background: rgba(0,0,0,0.9);
             border: 2px solid var(--primary); color: var(--primary);
-            font-family: inherit; font-size: 1.2rem; cursor: pointer;
+            font-family: inherit; font-size: 1.1rem; cursor: pointer;
+            letter-spacing: 2px; text-transform: uppercase;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.2);
             display: none;
         }
-        #cam-btn:hover { background: var(--primary); color: #000; }
+        #cam-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 50px var(--primary); }
+
+        @media (max-width: 768px) {
+            .hud-panel { width: 85vw; font-size: 0.9rem; }
+            .credits { bottom: 15px; right: 50%; transform: translateX(50%); width: max-content; }
+        }
     </style>
 </head>
 <body>
 
     <div id="error-overlay">
         <div class="error-box">
-            <div class="error-title">⚠️ SYSTEM HALTED</div>
+            <div class="error-title">⚠️ SYSTEM LOCKED</div>
             <div class="error-msg" id="error-message">Unknown Error</div>
-            <button class="retry-btn" onclick="location.reload()">RELOAD SYSTEM</button>
+            <button class="retry-btn" onclick="location.reload()">REBOOT</button>
         </div>
     </div>
 
-    <button id="cam-btn" onclick="enableCameraMode()">ENABLE CAMERA CONTROL</button>
+    <button id="cam-btn" onclick="enableCameraMode()">START SYSTEM</button>
 
     <div id="ui-layer">
-        <button class="toggle-btn" id="toggle-panel"><span>ℹ️</span> INFO</button>
+        <button class="toggle-btn" id="toggle-panel"><span>ℹ️</span> CONTROLS</button>
         <div class="hud-panel" id="info-panel">
             <h2 style="margin:0 0 10px 0; color:white; border-bottom:1px solid #333; padding-bottom:10px;">Caffora Engine</h2>
-            <div style="font-size:0.9rem; color:#aaa; line-height:1.8;">
-                <div>✊ <strong>Close Hand:</strong> Hyper-Zoom</div>
+            <div style="font-size:0.85rem; color:#aaa; line-height:1.9;">
+                <div>✊ <strong>Fist:</strong> Hyper-Zoom</div>
                 <div>👌 <strong>Pinch:</strong> Gravity Well</div>
-                <div>✌️ <strong>Peace Sign:</strong> Vortex Spin</div>
-                <div>✋ <strong>Open Palm:</strong> Repel / Blast</div>
-                <div>↔️ <strong>Move Hand:</strong> Rotate View</div>
+                <div>✌️ <strong>Peace:</strong> Vortex Spin</div>
+                <div>✋ <strong>Palm:</strong> Repel Force</div>
+                <div>↔️ <strong>Move:</strong> Rotate Universe</div>
             </div>
             <div id="status-log" style="margin-top:15px; color:var(--primary); font-size:0.75rem; border-top:1px solid #333; padding-top:10px;">
-                SYSTEM: IDLE MODE (Waiting for Camera)
+                STATUS: STANDBY
             </div>
         </div>
     </div>
@@ -125,7 +132,17 @@
     <div id="canvas-container"></div>
 
     <script>
-        // --- 1. SYSTEM CHECK ---
+        // --- 1. CONFIGURATION (MOBILE ADAPTIVE) ---
+        const isMobile = window.innerWidth < 768;
+        
+        const CONFIG = {
+            count: isMobile ? 18000 : 30000,    // Fewer particles on mobile for FPS
+            camZ: isMobile ? 1200 : 600,        // Start MUCH further back on mobile
+            zoomZ: isMobile ? 300 : 100,        // Don't zoom in too close on mobile
+            smoothing: 0.1                      // Input damping (lower = smoother/slower)
+        };
+
+        // --- 2. SYSTEM CHECK ---
         const errorOverlay = document.getElementById('error-overlay');
         const errorMsg = document.getElementById('error-message');
         const statusLog = document.getElementById('status-log');
@@ -138,28 +155,28 @@
 
         if (window.location.protocol === 'file:') {
             errorOverlay.style.display = 'flex';
-            errorMsg.innerHTML = "Security Block: You are running this file directly.<br>Camera access requires a Local Server (localhost).";
+            errorMsg.innerHTML = "Security Block: File Protocol.<br>Camera requires localhost server.";
             throw new Error("File Protocol Block");
         }
 
-        // --- 2. THREE.JS ENGINE ---
-        const CONFIG = { count: 25000, camZ: 400, zoomZ: 50 };
+        // --- 3. THREE.JS ENGINE ---
         let scene, camera, renderer, particles, geometry;
         let positions, originalPositions, velocities;
         
         // Input State
         const input = { 
             x: 0, y: 0, normX: 0, 
+            targetX: 0, targetY: 0, targetNormX: 0, // For smoothing
             isFist: false, isPinch: false, isPeace: false, isOpenPalm: false, 
-            active: false // False means IDLE mode (auto-rotate)
+            active: false 
         };
 
         function initThree() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+            scene.fog = new THREE.FogExp2(0x020202, 0.001); // Darker fog
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 2000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 3000);
             camera.position.z = CONFIG.camZ;
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -177,7 +194,8 @@
             const color2 = new THREE.Color(0xff0055);
 
             for(let i=0; i<CONFIG.count; i++) {
-                const r = 350 * Math.cbrt(Math.random());
+                // Galaxy Spiral Distribution
+                const r = 400 * Math.cbrt(Math.random()); // Wider radius
                 const theta = Math.random() * 2 * Math.PI;
                 const phi = Math.acos(2 * Math.random() - 1);
                 
@@ -188,23 +206,25 @@
                 positions[i*3] = x; positions[i*3+1] = y; positions[i*3+2] = z;
                 originalPositions[i*3] = x; originalPositions[i*3+1] = y; originalPositions[i*3+2] = z;
                 
-                const mix = color1.clone().lerp(color2, (x+350)/700);
+                const mix = color1.clone().lerp(color2, (x+400)/800);
                 colors[i*3] = mix.r; colors[i*3+1] = mix.g; colors[i*3+2] = mix.b;
             }
 
             geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
+            // Soft Glow Texture
             const cvs = document.createElement('canvas'); cvs.width=32; cvs.height=32;
             const ctx = cvs.getContext('2d');
             const gr = ctx.createRadialGradient(16,16,0,16,16,16);
-            gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+            gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.2)'); gr.addColorStop(1,'rgba(0,0,0,0)');
             ctx.fillStyle=gr; ctx.fillRect(0,0,32,32);
             const tex = new THREE.Texture(cvs); tex.needsUpdate=true;
 
             const mat = new THREE.PointsMaterial({
-                size: 3.5, map: tex, vertexColors: true, blending: THREE.AdditiveBlending,
-                depthWrite: false, transparent: true, opacity: 0.8
+                size: isMobile ? 4.5 : 3.5, // Slightly larger on mobile to be visible from far
+                map: tex, vertexColors: true, blending: THREE.AdditiveBlending,
+                depthWrite: false, transparent: true, opacity: 0.85
             });
 
             particles = new THREE.Points(geometry, mat);
@@ -216,23 +236,26 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            // Camera Zoom (Only if active)
-            const targetZ = (input.active && input.isFist) ? CONFIG.zoomZ : CONFIG.camZ;
-            camera.position.z += (targetZ - camera.position.z) * 0.05;
+            // 1. SMOOTH INPUTS (Lerp)
+            // This prevents "Too Sensitive" feeling on mobile
+            input.x += (input.targetX - input.x) * CONFIG.smoothing;
+            input.y += (input.targetY - input.y) * CONFIG.smoothing;
+            input.normX += (input.targetNormX - input.normX) * CONFIG.smoothing;
 
-            // Rotation Logic
+            // 2. CAMERA ZOOM
+            const targetZ = (input.active && input.isFist) ? CONFIG.zoomZ : CONFIG.camZ;
+            camera.position.z += (targetZ - camera.position.z) * 0.04;
+
+            // 3. ROTATION
             if(input.active) {
-                // Controlled Rotation
-                const targetRot = input.normX * -1.5;
+                const targetRot = input.normX * -1.2;
                 particles.rotation.y += (targetRot - particles.rotation.y) * 0.05;
             } else {
-                // Idle Rotation (Slow)
-                particles.rotation.y += 0.0015;
+                particles.rotation.y += 0.001;
             }
 
-            // Physics
+            // 4. PHYSICS
             const pos = geometry.attributes.position.array;
-            // Pre-calculate rotation matrices for physics to match visual rotation
             const cosR = Math.cos(-particles.rotation.y);
             const sinR = Math.sin(-particles.rotation.y);
             const lx = input.x * cosR; 
@@ -242,41 +265,32 @@
                 const ix = i*3;
                 const px = pos[ix]; const py = pos[ix+1]; const pz = pos[ix+2];
 
-                // Forces only apply if Hand is Active
                 if(input.active) {
                     const dx = lx - px; const dy = input.y - py; const dz = lz - pz;
                     const d = Math.sqrt(dx*dx + dy*dy + dz*dz);
                     
-                    if(d < 250) { // Interaction Range
-                        const f = (250-d)/250;
+                    // Interaction Radius increased for "Gigantic" feel
+                    if(d < 350) { 
+                        const f = (350-d)/350;
                         
-                        if(input.isPinch) {
-                            // GRAVITY (Attract)
-                            velocities[ix] += dx*f*0.05; 
-                            velocities[ix+1] += dy*f*0.05; 
-                            velocities[ix+2] += dz*f*0.05;
+                        if(input.isPinch) { // GRAVITY
+                            velocities[ix] += dx*f*0.06; velocities[ix+1] += dy*f*0.06; velocities[ix+2] += dz*f*0.06;
                         } 
-                        else if (input.isOpenPalm) {
-                            // REPULSE (Blast away)
-                            velocities[ix] -= dx*f*0.1; 
-                            velocities[ix+1] -= dy*f*0.1; 
-                            velocities[ix+2] -= dz*f*0.1;
+                        else if (input.isOpenPalm) { // SHOCKWAVE
+                            velocities[ix] -= dx*f*0.12; velocities[ix+1] -= dy*f*0.12; velocities[ix+2] -= dz*f*0.12;
                         }
-                        else if (input.isPeace) {
-                            // VORTEX (Spin perpendicular to direction)
-                            // Cross product (dy, -dx)
-                            velocities[ix] += -dy * f * 0.05;
-                            velocities[ix+1] += dx * f * 0.05;
-                            // Pull slightly in z to make 3d vortex
-                            velocities[ix+2] += dz * f * 0.01;
+                        else if (input.isPeace) { // VORTEX
+                            velocities[ix] += -dy * f * 0.08;
+                            velocities[ix+1] += dx * f * 0.08;
+                            velocities[ix+2] += dz * f * 0.02;
                         }
                     }
                 }
 
-                // Elasticity (Return Home)
-                velocities[ix] += (originalPositions[ix] - px) * 0.02;
-                velocities[ix+1] += (originalPositions[ix+1] - py) * 0.02;
-                velocities[ix+2] += (originalPositions[ix+2] - pz) * 0.02;
+                // Elasticity
+                velocities[ix] += (originalPositions[ix] - px) * 0.025;
+                velocities[ix+1] += (originalPositions[ix+1] - py) * 0.025;
+                velocities[ix+2] += (originalPositions[ix+2] - pz) * 0.025;
 
                 // Friction
                 velocities[ix] *= 0.92; velocities[ix+1] *= 0.92; velocities[ix+2] *= 0.92;
@@ -287,14 +301,14 @@
             renderer.render(scene, camera);
         }
 
-        // --- 3. VISION ENGINE ---
+        // --- 4. VISION ENGINE ---
         const videoElement = document.getElementById('input_video');
         const camBtn = document.getElementById('cam-btn');
         let hands;
 
         function enableCameraMode() {
             camBtn.style.display = 'none';
-            log("CONNECTING VISION...");
+            log("INITIALIZING VISION...");
             
             if(!hands) {
                 hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
@@ -308,7 +322,7 @@
             });
             
             cam.start().then(() => log("VISION ONLINE")).catch(err => {
-                log("CAMERA DENIED", true);
+                log("CAMERA BLOCKED", true);
                 camBtn.style.display = 'block';
             });
         }
@@ -318,76 +332,66 @@
                 const lm = results.multiHandLandmarks[0];
                 input.active = true;
                 
-                // Position
+                // MAPPING: Smooth targeting
                 const xRaw = 1 - lm[9].x; 
-                input.x = (xRaw * window.innerWidth) - (window.innerWidth/2);
-                input.y = (1 - lm[9].y) * window.innerHeight - (window.innerHeight/2);
-                input.normX = (xRaw * 2) - 1;
+                input.targetX = (xRaw * window.innerWidth) - (window.innerWidth/2);
+                input.targetY = (1 - lm[9].y) * window.innerHeight - (window.innerHeight/2);
+                input.targetNormX = (xRaw * 2) - 1;
 
-                // GESTURE RECOGNITION
-
-                // 1. PINCH: Index Tip (8) close to Thumb Tip (4)
+                // GESTURES
                 const pDist = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);
                 input.isPinch = pDist < 0.05;
 
-                // 2. FIST: Pinky(20) and Ring(16) tips close to Wrist(0)
                 const rFold = Math.hypot(lm[16].x - lm[0].x, lm[16].y - lm[0].y);
                 const pFold = Math.hypot(lm[20].x - lm[0].x, lm[20].y - lm[0].y);
                 input.isFist = (rFold < 0.15 && pFold < 0.15);
 
-                // 3. PEACE SIGN: Index(8) & Middle(12) extended, others folded
-                // Simplification: Index & Middle tips far from wrist, Pinky & Ring tips close to wrist
                 const iExt = Math.hypot(lm[8].x - lm[0].x, lm[8].y - lm[0].y) > 0.3;
                 const mExt = Math.hypot(lm[12].x - lm[0].x, lm[12].y - lm[0].y) > 0.3;
-                input.isPeace = (iExt && mExt && input.isFist); // Fist check confirms bottom fingers folded
+                input.isPeace = (iExt && mExt && input.isFist);
 
-                // 4. OPEN PALM: All fingers far from wrist, no pinch
-                // Simplification: If not fist, not pinch, and fingers spread
                 input.isOpenPalm = !input.isFist && !input.isPinch && !input.isPeace;
 
                 let status = "TRACKING";
-                if(input.isPinch) status = "PINCH (GRAVITY)";
-                else if(input.isFist) status = "FIST (ZOOM)";
-                else if(input.isPeace) status = "PEACE (VORTEX)";
-                else if(input.isOpenPalm) status = "PALM (REPEL)";
+                if(input.isPinch) status = "GRAVITY WELL";
+                else if(input.isFist) status = "HYPER ZOOM";
+                else if(input.isPeace) status = "VORTEX";
+                else if(input.isOpenPalm) status = "SHOCKWAVE";
                 log(status);
 
             } else {
-                input.active = false; // Go back to idle rotation
-                log("IDLE: NO HAND");
+                input.active = false;
+                log("IDLE: WAITING...");
             }
         }
 
-        // --- 4. ANIMATIONS & STARTUP ---
+        // --- 5. STARTUP & UI ---
         initThree();
         camBtn.style.display = 'block';
         
-        // Rotator Text
-        const words = ["vibecoded", "scifi mode", "pure chaos", "kinetic", "flow state"];
-        const emojis = ["♥", "⚡", "🔮", "🌊", "👁️"];
+        // Text Animation
+        const words = ["vibecoded", "cosmic flow", "stardust", "kinetic", "dreamy"];
+        const emojis = ["♥", "🪐", "✨", "🌊", "👁️"];
         const rotator = document.getElementById('rotator');
         const emoji = document.getElementById('emoji-roulette');
         let idx = 0;
         
         setInterval(() => {
             idx = (idx + 1) % words.length;
-            rotator.style.opacity = 0;
-            rotator.style.transform = 'translateY(-10px)';
+            rotator.style.opacity = 0; rotator.style.transform = 'translateY(-10px)';
             emoji.classList.add('pop');
-            
             setTimeout(() => {
-                rotator.innerText = words[idx];
-                rotator.style.opacity = 1;
-                rotator.style.transform = 'translateY(0)';
-                emoji.innerText = emojis[idx];
-                emoji.classList.remove('pop');
+                rotator.innerText = words[idx]; rotator.style.opacity = 1; rotator.style.transform = 'translateY(0)';
+                emoji.innerText = emojis[idx]; emoji.classList.remove('pop');
             }, 500);
         }, 3000);
 
-        // UI Logic
+        // UI Toggles
         const toggle = document.getElementById('toggle-panel');
         const panel = document.getElementById('info-panel');
-        let open = true;
+        let open = !isMobile; // Closed by default on mobile
+        if(!open) panel.classList.add('closed');
+
         toggle.onclick = (e) => { e.stopPropagation(); open=!open; panel.classList.toggle('closed', !open); };
         document.onclick = (e) => { if(open && !panel.contains(e.target) && e.target!==toggle) { open=false; panel.classList.add('closed'); }};
         
