@@ -1,471 +1,658 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Caffora: Kinetic Universe</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;500;700&display=swap" rel="stylesheet">
 
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"
+      crossorigin="anonymous"
+    ></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
-        :root {
-            --primary: #00d2ff;
-            --accent: #ff0055;
-            --bg-panel: rgba(10, 10, 20, 0.85);
-        }
+      :root {
+        --primary: #00d2ff;
+        --accent: #ff0055;
+        --bg-panel: rgba(10, 10, 20, 0.85);
+      }
 
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'IBM Plex Mono', monospace; }
-        #canvas-container { width: 100vw; height: 100vh; }
-        #input_video { display: none; }
-        
-        /* UI LAYOUT */
-        #ui-layer {
-            position: absolute;
-            top: 20px; left: 20px;
-            z-index: 10;
-        }
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        font-family: "IBM Plex Mono", monospace;
+      }
+      #canvas-container {
+        width: 100vw;
+        height: 100vh;
+      }
+      #input_video {
+        display: none;
+      }
 
-        /* TOGGLE BUTTON */
-        .toggle-btn {
-            background: var(--bg-panel);
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 10px 15px;
-            cursor: pointer;
-            font-family: inherit;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            backdrop-filter: blur(5px);
-            transition: all 0.3s ease;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .toggle-btn:hover {
-            background: var(--primary);
-            color: #000;
-            box-shadow: 0 0 15px var(--primary);
-        }
+      /* UI LAYOUT */
+      #ui-layer {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+      }
 
-        /* CAMERA PERMISSION BUTTON (Centered Overlay) */
-        #camera-request-overlay {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 50;
-            text-align: center;
-            display: none; /* Hidden by default */
-        }
-        
-        .cam-btn {
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            font-family: inherit;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: 0.3s;
-            box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
-        }
+      /* TOGGLE BUTTON */
+      .toggle-btn {
+        background: var(--bg-panel);
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        padding: 10px 15px;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toggle-btn:hover {
+        background: var(--primary);
+        color: #000;
+        box-shadow: 0 0 15px var(--primary);
+      }
 
-        .cam-btn:hover {
-            background: var(--accent);
-            color: white;
-            box-shadow: 0 0 40px var(--accent);
-        }
+      /* CAMERA PERMISSION BUTTON (Centered Overlay) */
+      #camera-request-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 50;
+        text-align: center;
+        display: none; /* Hidden by default */
+      }
 
-        .cam-msg {
-            color: white;
-            margin-bottom: 15px;
-            font-size: 0.9rem;
-            max-width: 300px;
-            line-height: 1.5;
-        }
+      .cam-btn {
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid var(--accent);
+        color: var(--accent);
+        padding: 15px 30px;
+        font-size: 1.2rem;
+        font-family: inherit;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: 0.3s;
+        box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+      }
 
-        /* HUD PANEL (Collapsible) */
+      .cam-btn:hover {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 0 40px var(--accent);
+      }
+
+      .cam-msg {
+        color: white;
+        margin-bottom: 15px;
+        font-size: 0.9rem;
+        max-width: 300px;
+        line-height: 1.5;
+      }
+
+      /* HUD PANEL (Collapsible) */
+      .hud-panel {
+        background: var(--bg-panel);
+        border-left: 3px solid var(--primary);
+        padding: 20px;
+        border-radius: 0 8px 8px 0;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        color: white;
+        width: 280px;
+        transform-origin: top left;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        opacity: 1;
+        transform: scale(1) translateX(0);
+      }
+
+      .hud-panel.closed {
+        opacity: 0;
+        transform: scale(0.8) translateX(-50px);
+        pointer-events: none;
+        position: absolute;
+      }
+
+      h2 {
+        margin: 0 0 15px 0;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 1.1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 10px;
+      }
+      .guide-item {
+        margin-bottom: 12px;
+        font-size: 0.85rem;
+        color: #aaddff;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .icon {
+        font-size: 1.4rem;
+        width: 30px;
+        text-align: center;
+      }
+      .status-text {
+        margin-top: 20px;
+        font-size: 0.7rem;
+        color: var(--accent);
+        font-weight: bold;
+        letter-spacing: 1px;
+      }
+      .status-text.active {
+        color: #00ff88;
+        text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      }
+
+      /* ANIMATED FOOTER CREDITS */
+      .credits {
+        position: absolute;
+        bottom: 25px;
+        right: 25px;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+        z-index: 20;
+        text-align: right;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px 20px;
+        border-radius: 30px;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* ROTATING TEXT ANIMATION (Flow In/Out) */
+      .rotating-text-wrapper {
+        display: inline-block;
+        min-width: 100px;
+        text-align: right;
+        position: relative;
+      }
+
+      .rotating-word {
+        display: inline-block;
+        transition: opacity 0.5s ease, transform 0.5s ease;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .rotating-word.hidden {
+        opacity: 0;
+        transform: translateY(10px);
+        position: absolute;
+        right: 0;
+      }
+
+      /* EMOJI ANIMATION */
+      .emoji-box {
+        display: inline-block;
+        min-width: 25px;
+        text-align: center;
+        font-size: 1.2rem;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .emoji-box.pop {
+        transform: scale(1.5) rotate(15deg);
+      }
+
+      /* GRADIENT USERNAME ANIMATION */
+      .gradient-link {
+        text-decoration: none;
+        font-weight: 700;
+        background: linear-gradient(
+          to right,
+          #00d2ff,
+          #3a7bd5,
+          #ff0055,
+          #00d2ff
+        );
+        background-size: 200% auto;
+        color: #000;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shine 3s linear infinite;
+      }
+
+      @keyframes shine {
+        to {
+          background-position: 200% center;
+        }
+      }
+
+      @media (max-width: 768px) {
         .hud-panel {
-            background: var(--bg-panel);
-            border-left: 3px solid var(--primary);
-            padding: 20px;
-            border-radius: 0 8px 8px 0;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
-            color: white;
-            width: 280px;
-            transform-origin: top left;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            opacity: 1;
-            transform: scale(1) translateX(0);
+          width: 85vw;
+          font-size: 0.9rem;
         }
-
-        .hud-panel.closed {
-            opacity: 0;
-            transform: scale(0.8) translateX(-50px);
-            pointer-events: none;
-            position: absolute;
-        }
-
-        h2 { margin: 0 0 15px 0; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;}
-        .guide-item { margin-bottom: 12px; font-size: 0.85rem; color: #aaddff; display: flex; align-items: center; gap: 12px; }
-        .icon { font-size: 1.4rem; width: 30px; text-align: center; }
-        .status-text { margin-top: 20px; font-size: 0.7rem; color: var(--accent); font-weight: bold; letter-spacing: 1px; }
-        .status-text.active { color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
-
-        /* ANIMATED FOOTER CREDITS */
         .credits {
-            position: absolute;
-            bottom: 25px;
-            right: 25px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-            z-index: 20;
-            text-align: right;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0,0,0,0.6);
-            padding: 10px 20px;
-            border-radius: 30px;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255,255,255,0.1);
+          bottom: 10px;
+          right: 50%;
+          transform: translateX(50%);
+          width: max-content;
+          font-size: 0.75rem;
+          padding: 8px 15px;
         }
-
-        /* ROTATING TEXT ANIMATION (Flow In/Out) */
-        .rotating-text-wrapper {
-            display: inline-block;
-            min-width: 100px;
-            text-align: right;
-            position: relative;
+        .toggle-btn {
+          padding: 8px 12px;
+          font-size: 0.8rem;
         }
-        
-        .rotating-word {
-            display: inline-block;
-            transition: opacity 0.5s ease, transform 0.5s ease;
-            opacity: 1;
-            transform: translateY(0);
-        }
-        
-        .rotating-word.hidden {
-            opacity: 0;
-            transform: translateY(10px);
-            position: absolute;
-            right: 0;
-        }
-
-        /* EMOJI ANIMATION */
-        .emoji-box {
-            display: inline-block;
-            min-width: 25px;
-            text-align: center;
-            font-size: 1.2rem;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .emoji-box.pop {
-            transform: scale(1.5) rotate(15deg);
-        }
-
-        /* GRADIENT USERNAME ANIMATION */
-        .gradient-link {
-            text-decoration: none;
-            font-weight: 700;
-            background: linear-gradient(to right, #00d2ff, #3a7bd5, #ff0055, #00d2ff);
-            background-size: 200% auto;
-            color: #000;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 3s linear infinite;
-        }
-        
-        @keyframes shine {
-            to { background-position: 200% center; }
-        }
-
-        @media (max-width: 768px) {
-            .hud-panel { width: 85vw; font-size: 0.9rem; }
-            .credits { 
-                bottom: 10px; 
-                right: 50%; 
-                transform: translateX(50%); 
-                width: max-content;
-                font-size: 0.75rem;
-                padding: 8px 15px;
-            }
-            .toggle-btn { padding: 8px 12px; font-size: 0.8rem; }
-        }
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <div id="camera-request-overlay">
-        <div class="cam-msg">Camera access is required for hand tracking. Click below to enable.</div>
-        <button class="cam-btn" onclick="startCamera()">Enable Camera</button>
+      <div class="cam-msg">
+        Camera access is required for hand tracking. Click below to enable.
+      </div>
+      <button class="cam-btn" onclick="startCamera()">Enable Camera</button>
     </div>
 
     <div id="ui-layer">
-        <button class="toggle-btn" id="toggle-panel">
-            <span>ℹ️</span> INFO
-        </button>
-        
-        <div class="hud-panel" id="info-panel">
-            <h2>Caffora Engine</h2>
-            <div class="guide-item"><span class="icon">✊</span> <span><strong>Close Hand:</strong> Hyper-Zoom</span></div>
-            <div class="guide-item"><span class="icon">✋</span> <span><strong>Open Hand:</strong> Reset View</span></div>
-            <div class="guide-item"><span class="icon">↔️</span> <span><strong>Move Side:</strong> Rotate World</span></div>
-            <div class="guide-item"><span class="icon">👌</span> <span><strong>Pinch:</strong> Gravity Well</span></div>
-            <div id="status-indicator" class="status-text">WAITING FOR PERMISSION...</div>
+      <button class="toggle-btn" id="toggle-panel"><span>ℹ️</span> INFO</button>
+
+      <div class="hud-panel" id="info-panel">
+        <h2>Caffora Engine</h2>
+        <div class="guide-item">
+          <span class="icon">✊</span>
+          <span><strong>Close Hand:</strong> Hyper-Zoom</span>
         </div>
+        <div class="guide-item">
+          <span class="icon">✋</span>
+          <span><strong>Open Hand:</strong> Reset View</span>
+        </div>
+        <div class="guide-item">
+          <span class="icon">↔️</span>
+          <span><strong>Move Side:</strong> Rotate World</span>
+        </div>
+        <div class="guide-item">
+          <span class="icon">👌</span>
+          <span><strong>Pinch:</strong> Gravity Well</span>
+        </div>
+        <div id="status-indicator" class="status-text">
+          WAITING FOR PERMISSION...
+        </div>
+      </div>
     </div>
 
     <div class="credits">
-        <span class="rotating-text-wrapper">
-            <span id="rotator" class="rotating-word">vibecoded</span>
-        </span> 
-        <span id="emoji-roulette" class="emoji-box">♥</span> 
-        by 
-        <a href="https://github.com/Wellitsabhi" target="_blank" class="gradient-link">wellitsabhi</a>
+      <span class="rotating-text-wrapper">
+        <span id="rotator" class="rotating-word">vibecoded</span>
+      </span>
+      <span id="emoji-roulette" class="emoji-box">♥</span>
+      by
+      <a
+        href="https://github.com/Wellitsabhi"
+        target="_blank"
+        class="gradient-link"
+        >wellitsabhi</a
+      >
     </div>
 
     <video id="input_video"></video>
     <div id="canvas-container"></div>
 
     <script>
-        // --- UI INTERACTIVITY ---
-        
-        const toggleBtn = document.getElementById('toggle-panel');
-        const infoPanel = document.getElementById('info-panel');
-        const camOverlay = document.getElementById('camera-request-overlay');
-        const statusInd = document.getElementById('status-indicator');
-        let isPanelOpen = true;
+      // --- UI INTERACTIVITY ---
 
-        // 1. Toggle Button Logic
-        toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent closing immediately
-            togglePanelState(!isPanelOpen);
-        });
+      const toggleBtn = document.getElementById("toggle-panel");
+      const infoPanel = document.getElementById("info-panel");
+      const camOverlay = document.getElementById("camera-request-overlay");
+      const statusInd = document.getElementById("status-indicator");
+      let isPanelOpen = true;
 
-        // 2. Click Outside to Close Sidebar
-        document.addEventListener('click', (e) => {
-            if (isPanelOpen && !infoPanel.contains(e.target) && e.target !== toggleBtn) {
-                togglePanelState(false);
-            }
-        });
+      // 1. Toggle Button Logic
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent closing immediately
+        togglePanelState(!isPanelOpen);
+      });
 
-        function togglePanelState(isOpen) {
-            isPanelOpen = isOpen;
-            if(isOpen) {
-                infoPanel.classList.remove('closed');
-                toggleBtn.style.opacity = '1';
-            } else {
-                infoPanel.classList.add('closed');
-                toggleBtn.style.opacity = '0.7';
-            }
+      // 2. Click Outside to Close Sidebar
+      document.addEventListener("click", (e) => {
+        if (
+          isPanelOpen &&
+          !infoPanel.contains(e.target) &&
+          e.target !== toggleBtn
+        ) {
+          togglePanelState(false);
         }
+      });
 
-        // 3. Text & Emoji Animation
-        const words = ["vibecoded", "easy peasy", "pure chaos", "just magic", "scifi mode"];
-        const emojis = ["♥", "😂", "😭", "🤔", "🔥", "👀", "🚀"];
-        const rotatorEl = document.getElementById('rotator');
-        const emojiEl = document.getElementById('emoji-roulette');
-        let wordIndex = 0, emojiIndex = 0;
-
-        function cycleContent() {
-            rotatorEl.style.opacity = '0';
-            rotatorEl.style.transform = 'translateY(-10px)';
-
-            setTimeout(() => {
-                wordIndex = (wordIndex + 1) % words.length;
-                rotatorEl.innerText = words[wordIndex];
-                rotatorEl.style.opacity = '1';
-                rotatorEl.style.transform = 'translateY(0)';
-            }, 500);
-
-            emojiEl.classList.add('pop');
-            setTimeout(() => {
-                emojiIndex = (emojiIndex + 1) % emojis.length;
-                emojiEl.innerText = emojis[emojiIndex];
-                emojiEl.classList.remove('pop');
-            }, 300);
+      function togglePanelState(isOpen) {
+        isPanelOpen = isOpen;
+        if (isOpen) {
+          infoPanel.classList.remove("closed");
+          toggleBtn.style.opacity = "1";
+        } else {
+          infoPanel.classList.add("closed");
+          toggleBtn.style.opacity = "0.7";
         }
-        setInterval(cycleContent, 2500);
+      }
 
-        // --- WEBGL ENGINE ---
-        const CONFIG = { particleCount: 25000, defaultCamZ: 400, zoomCamZ: 50, maxRotation: 1.5, lerpSpeed: 0.05 };
-        let scene, camera, renderer, particles;
-        let positions, velocities, originalPositions, colors;
-        
-        const input = { x: 0, y: 0, normalizedX: 0, isFist: false, isPinching: false, isActive: false };
+      // 3. Text & Emoji Animation
+      const words = [
+        "vibecoded",
+        "easy peasy",
+        "pure chaos",
+        "just magic",
+        "scifi mode",
+      ];
+      const emojis = ["♥", "😂", "😭", "🤔", "🔥", "👀", "🚀"];
+      const rotatorEl = document.getElementById("rotator");
+      const emojiEl = document.getElementById("emoji-roulette");
+      let wordIndex = 0,
+        emojiIndex = 0;
 
-        function initThree() {
-            const container = document.getElementById('canvas-container');
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x000000, 0.0015);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 2000);
-            camera.position.z = CONFIG.defaultCamZ;
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            container.appendChild(renderer.domElement);
-            createUniverse();
-            animate();
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+      function cycleContent() {
+        rotatorEl.style.opacity = "0";
+        rotatorEl.style.transform = "translateY(-10px)";
+
+        setTimeout(() => {
+          wordIndex = (wordIndex + 1) % words.length;
+          rotatorEl.innerText = words[wordIndex];
+          rotatorEl.style.opacity = "1";
+          rotatorEl.style.transform = "translateY(0)";
+        }, 500);
+
+        emojiEl.classList.add("pop");
+        setTimeout(() => {
+          emojiIndex = (emojiIndex + 1) % emojis.length;
+          emojiEl.innerText = emojis[emojiIndex];
+          emojiEl.classList.remove("pop");
+        }, 300);
+      }
+      setInterval(cycleContent, 2500);
+
+      // --- WEBGL ENGINE ---
+      const CONFIG = {
+        particleCount: 25000,
+        defaultCamZ: 400,
+        zoomCamZ: 50,
+        maxRotation: 1.5,
+        lerpSpeed: 0.05,
+      };
+      let scene, camera, renderer, particles;
+      let positions, velocities, originalPositions, colors;
+
+      const input = {
+        x: 0,
+        y: 0,
+        normalizedX: 0,
+        isFist: false,
+        isPinching: false,
+        isActive: false,
+      };
+
+      function initThree() {
+        const container = document.getElementById("canvas-container");
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.0015);
+        camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          1,
+          2000
+        );
+        camera.position.z = CONFIG.defaultCamZ;
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+        createUniverse();
+        animate();
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      }
+
+      function createUniverse() {
+        const geometry = new THREE.BufferGeometry();
+        positions = new Float32Array(CONFIG.particleCount * 3);
+        velocities = new Float32Array(CONFIG.particleCount * 3);
+        originalPositions = new Float32Array(CONFIG.particleCount * 3);
+        colors = new Float32Array(CONFIG.particleCount * 3);
+        const color1 = new THREE.Color(0x00d2ff);
+        const color2 = new THREE.Color(0xff0055);
+
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+          const r = 350 * Math.cbrt(Math.random());
+          const theta = Math.random() * 2 * Math.PI;
+          const phi = Math.acos(2 * Math.random() - 1);
+          const x = r * Math.sin(phi) * Math.cos(theta);
+          const y = r * Math.sin(phi) * Math.sin(theta);
+          const z = r * Math.cos(phi);
+          positions[i * 3] = x;
+          positions[i * 3 + 1] = y;
+          positions[i * 3 + 2] = z;
+          originalPositions[i * 3] = x;
+          originalPositions[i * 3 + 1] = y;
+          originalPositions[i * 3 + 2] = z;
+          const mixedColor = color1.clone().lerp(color2, (x + 350) / 700);
+          colors[i * 3] = mixedColor.r;
+          colors[i * 3 + 1] = mixedColor.g;
+          colors[i * 3 + 2] = mixedColor.b;
+        }
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3)
+        );
+        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+        const canvas = document.createElement("canvas");
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext("2d");
+        const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.4, "rgba(255,255,255,0.3)");
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 32, 32);
+        const texture = new THREE.Texture(canvas);
+        const material = new THREE.PointsMaterial({
+          size: 3.5,
+          map: texture,
+          vertexColors: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          transparent: true,
+          opacity: 0.8,
+        });
+        particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const targetZ = input.isFist ? CONFIG.zoomCamZ : CONFIG.defaultCamZ;
+        camera.position.z += (targetZ - camera.position.z) * CONFIG.lerpSpeed;
+        if (input.isActive) {
+          const targetRotation = input.normalizedX * -CONFIG.maxRotation;
+          particles.rotation.y +=
+            (targetRotation - particles.rotation.y) * CONFIG.lerpSpeed;
+        } else {
+          particles.rotation.y += 0.001;
+        }
+        const posAttr = particles.geometry.attributes.position;
+        const cosR = Math.cos(-particles.rotation.y);
+        const sinR = Math.sin(-particles.rotation.y);
+        const localInputX = input.x * cosR - 0 * sinR;
+        const localInputZ = input.x * sinR + 0 * cosR;
+
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+          const ix = i * 3;
+          const iy = i * 3 + 1;
+          const iz = i * 3 + 2;
+          const px = positions[ix];
+          const py = positions[iy];
+          const pz = positions[iz];
+          if (input.isActive && input.isPinching) {
+            const dx = localInputX - px;
+            const dy = input.y - py;
+            const dz = localInputZ - pz;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < 200) {
+              const force = (200 - dist) / 200;
+              velocities[ix] += dx * force * 0.05;
+              velocities[iy] += dy * force * 0.05;
+              velocities[iz] += dz * force * 0.05;
+            }
+          }
+          velocities[ix] += (originalPositions[ix] - px) * 0.02;
+          velocities[iy] += (originalPositions[iy] - py) * 0.02;
+          velocities[iz] += (originalPositions[iz] - pz) * 0.02;
+          velocities[ix] *= 0.92;
+          velocities[iy] *= 0.92;
+          velocities[iz] *= 0.92;
+          positions[ix] += velocities[ix];
+          positions[iy] += velocities[iy];
+          positions[iz] += velocities[iz];
+        }
+        posAttr.needsUpdate = true;
+        renderer.render(scene, camera);
+      }
+
+      // --- CAMERA & VISION LOGIC ---
+      const videoElement = document.getElementById("input_video");
+      let cameraUtils;
+
+      const hands = new Hands({
+        locateFile: (file) =>
+          `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+      });
+      hands.onResults((results) => {
+        if (
+          results.multiHandLandmarks &&
+          results.multiHandLandmarks.length > 0
+        ) {
+          input.isActive = true;
+          statusInd.innerText = "SYSTEM ONLINE: TRACKING HAND";
+          statusInd.className = "status-text active";
+          camOverlay.style.display = "none"; // Ensure overlay is hidden if working
+
+          const landmarks = results.multiHandLandmarks[0];
+          const xRaw = 1 - landmarks[9].x;
+          input.x = xRaw * window.innerWidth - window.innerWidth / 2;
+          input.y =
+            (1 - landmarks[9].y) * window.innerHeight - window.innerHeight / 2;
+          input.normalizedX = xRaw * 2 - 1;
+
+          const pinchDist = Math.hypot(
+            landmarks[8].x - landmarks[4].x,
+            landmarks[8].y - landmarks[4].y
+          );
+          input.isPinching = pinchDist < 0.05;
+
+          const ringFold = Math.hypot(
+            landmarks[16].x - landmarks[0].x,
+            landmarks[16].y - landmarks[0].y
+          );
+          const pinkyFold = Math.hypot(
+            landmarks[20].x - landmarks[0].x,
+            landmarks[20].y - landmarks[0].y
+          );
+          input.isFist = ringFold < 0.15 && pinkyFold < 0.15;
+        } else {
+          input.isActive = false;
+          statusInd.innerText = "SEARCHING FOR HAND SIGNAL...";
+          statusInd.className = "status-text";
+          input.isFist = false;
+          input.normalizedX = 0;
+        }
+      });
+
+      // Function to explicitly start camera
+      async function startCamera() {
+        try {
+          camOverlay.style.display = "none"; // Hide button while loading
+          statusInd.innerText = "INITIALIZING CAMERA...";
+
+          if (!cameraUtils) {
+            cameraUtils = new Camera(videoElement, {
+              onFrame: async () => {
+                await hands.send({ image: videoElement });
+              },
+              width: 640,
+              height: 480,
             });
+          }
+          await cameraUtils.start();
+        } catch (error) {
+          console.error("Camera Error:", error);
+          camOverlay.style.display = "block"; // Show button again
+          statusInd.innerText = "CAMERA BLOCKED / ERROR";
+          statusInd.style.color = "red";
+
+          // If it's a hard block, warn the user
+          if (
+            error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError"
+          ) {
+            alert(
+              "Camera access was denied. Please click the lock icon in your browser address bar to reset permissions, then reload."
+            );
+          }
         }
+      }
 
-        function createUniverse() {
-            const geometry = new THREE.BufferGeometry();
-            positions = new Float32Array(CONFIG.particleCount * 3);
-            velocities = new Float32Array(CONFIG.particleCount * 3);
-            originalPositions = new Float32Array(CONFIG.particleCount * 3);
-            colors = new Float32Array(CONFIG.particleCount * 3);
-            const color1 = new THREE.Color(0x00d2ff); 
-            const color2 = new THREE.Color(0xff0055); 
-
-            for (let i = 0; i < CONFIG.particleCount; i++) {
-                const r = 350 * Math.cbrt(Math.random()); 
-                const theta = Math.random() * 2 * Math.PI;
-                const phi = Math.acos(2 * Math.random() - 1);
-                const x = r * Math.sin(phi) * Math.cos(theta);
-                const y = r * Math.sin(phi) * Math.sin(theta);
-                const z = r * Math.cos(phi);
-                positions[i*3] = x; positions[i*3+1] = y; positions[i*3+2] = z;
-                originalPositions[i*3] = x; originalPositions[i*3+1] = y; originalPositions[i*3+2] = z;
-                const mixedColor = color1.clone().lerp(color2, (x + 350) / 700);
-                colors[i*3] = mixedColor.r; colors[i*3+1] = mixedColor.g; colors[i*3+2] = mixedColor.b;
-            }
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const canvas = document.createElement('canvas');
-            canvas.width = 32; canvas.height = 32;
-            const ctx = canvas.getContext('2d');
-            const grad = ctx.createRadialGradient(16,16,0,16,16,16);
-            grad.addColorStop(0, 'rgba(255,255,255,1)');
-            grad.addColorStop(0.4, 'rgba(255,255,255,0.3)');
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0,0,32,32);
-            const texture = new THREE.Texture(canvas);
-            const material = new THREE.PointsMaterial({ size: 3.5, map: texture, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 });
-            particles = new THREE.Points(geometry, material);
-            scene.add(particles);
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const targetZ = input.isFist ? CONFIG.zoomCamZ : CONFIG.defaultCamZ;
-            camera.position.z += (targetZ - camera.position.z) * CONFIG.lerpSpeed;
-            if (input.isActive) {
-                const targetRotation = input.normalizedX * -CONFIG.maxRotation;
-                particles.rotation.y += (targetRotation - particles.rotation.y) * CONFIG.lerpSpeed;
-            } else {
-                particles.rotation.y += 0.001;
-            }
-            const posAttr = particles.geometry.attributes.position;
-            const cosR = Math.cos(-particles.rotation.y);
-            const sinR = Math.sin(-particles.rotation.y);
-            const localInputX = input.x * cosR - 0 * sinR; 
-            const localInputZ = input.x * sinR + 0 * cosR;
-
-            for (let i = 0; i < CONFIG.particleCount; i++) {
-                const ix = i * 3; const iy = i * 3 + 1; const iz = i * 3 + 2;
-                const px = positions[ix]; const py = positions[iy]; const pz = positions[iz];
-                if (input.isActive && input.isPinching) {
-                    const dx = localInputX - px; const dy = input.y - py; const dz = localInputZ - pz;
-                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                    if (dist < 200) {
-                        const force = (200 - dist) / 200;
-                        velocities[ix] += dx * force * 0.05; velocities[iy] += dy * force * 0.05; velocities[iz] += dz * force * 0.05;
-                    }
-                }
-                velocities[ix] += (originalPositions[ix] - px) * 0.02;
-                velocities[iy] += (originalPositions[iy] - py) * 0.02;
-                velocities[iz] += (originalPositions[iz] - pz) * 0.02;
-                velocities[ix] *= 0.92; velocities[iy] *= 0.92; velocities[iz] *= 0.92;
-                positions[ix] += velocities[ix]; positions[iy] += velocities[iy]; positions[iz] += velocities[iz];
-            }
-            posAttr.needsUpdate = true;
-            renderer.render(scene, camera);
-        }
-
-        // --- CAMERA & VISION LOGIC ---
-        const videoElement = document.getElementById('input_video');
-        let cameraUtils;
-
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                input.isActive = true;
-                statusInd.innerText = "SYSTEM ONLINE: TRACKING HAND";
-                statusInd.className = "status-text active";
-                camOverlay.style.display = 'none'; // Ensure overlay is hidden if working
-
-                const landmarks = results.multiHandLandmarks[0];
-                const xRaw = (1 - landmarks[9].x); 
-                input.x = (xRaw * window.innerWidth) - (window.innerWidth / 2);
-                input.y = (1 - landmarks[9].y) * window.innerHeight - (window.innerHeight / 2);
-                input.normalizedX = (xRaw * 2) - 1; 
-
-                const pinchDist = Math.hypot(landmarks[8].x - landmarks[4].x, landmarks[8].y - landmarks[4].y);
-                input.isPinching = pinchDist < 0.05;
-
-                const ringFold = Math.hypot(landmarks[16].x - landmarks[0].x, landmarks[16].y - landmarks[0].y);
-                const pinkyFold = Math.hypot(landmarks[20].x - landmarks[0].x, landmarks[20].y - landmarks[0].y);
-                input.isFist = (ringFold < 0.15 && pinkyFold < 0.15);
-            } else {
-                input.isActive = false;
-                statusInd.innerText = "SEARCHING FOR HAND SIGNAL...";
-                statusInd.className = "status-text";
-                input.isFist = false; input.normalizedX = 0; 
-            }
-        });
-
-        // Function to explicitly start camera
-        async function startCamera() {
-            try {
-                camOverlay.style.display = 'none'; // Hide button while loading
-                statusInd.innerText = "INITIALIZING CAMERA...";
-                
-                if(!cameraUtils) {
-                    cameraUtils = new Camera(videoElement, {
-                        onFrame: async () => { await hands.send({image: videoElement}); },
-                        width: 640, height: 480
-                    });
-                }
-                await cameraUtils.start();
-            } catch (error) {
-                console.error("Camera Error:", error);
-                camOverlay.style.display = 'block'; // Show button again
-                statusInd.innerText = "CAMERA BLOCKED / ERROR";
-                statusInd.style.color = 'red';
-                
-                // If it's a hard block, warn the user
-                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-                    alert("Camera access was denied. Please click the lock icon in your browser address bar to reset permissions, then reload.");
-                }
-            }
-        }
-
-        // Try auto-start on load
-        initThree();
-        startCamera(); 
-
+      // Try auto-start on load
+      initThree();
+      startCamera();
     </script>
-</body>
+
+    
+    <!-- Vercel Analytics -->
+    <script>
+      window.va =
+        window.va ||
+        function () {
+          (window.vaq = window.vaq || []).push(arguments);
+        };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </body>
 </html>
